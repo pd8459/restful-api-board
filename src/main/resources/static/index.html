@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RESTful API Example</title>
+</head>
+<body>
+<h1></h1>
+<div id="response"></div>
+
+<script>
+
+    async function fetchGreeting() {
+        try {
+            const response = await fetch('http://localhost:8080/api/hello');
+            const data = await response.json();
+            document.getElementById('response').textContent = data.message;
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    }
+
+
+    window.onload = fetchGreeting;
+</script>
+</body>
+</html>
