@@ -12,7 +12,7 @@ import java.util.Optional;
 @RequestMapping("/api/users")
 public class UserController {
 
-    private final UserService userService;
+    private final com.example.board.User.UserService userService;
 
 
     @PostMapping
@@ -49,7 +49,7 @@ public class UserController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         if (userService.deleteUser(id)) {
