@@ -43,7 +43,7 @@ public class UserController {
 
     @PutMapping("/{id}")
     public ResponseEntity<UserDto> updateUser(@PathVariable Long id, @RequestBody UserDto updatedUserDto) {
-        User updatedUser = updatedUserDto.toEntity();  // DTO -> 엔티티 변환
+        User updatedUser = updatedUserDto.toEntity();
         Optional<User> updated = userService.updateUser(id, updatedUser);
         return updated.map(u -> ResponseEntity.ok(UserDto.fromEntity(u)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
