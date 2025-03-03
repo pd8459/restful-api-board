@@ -34,10 +34,23 @@ public class Order {
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
-    public Order(User suer, int totalAmount) {
+    // Order 엔티티에 merchantUid 필드 추가
+    private String merchantUid;
+
+    private String impUid;
+    private int amount;
+
+    public Order(User user, int totalAmount) {
         this.user = user;
         this.totalAmount = totalAmount;
         this.orderDate = LocalDateTime.now();
         this.status = OrderStatus.PENDING;
     }
+
+    public void addOrderItem(OrderItem orderItem) {
+        orderItems.add(orderItem);
+        orderItem.setOrder(this);
+    }
+
+
 }

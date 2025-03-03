@@ -44,9 +44,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**")
+                        .requestMatchers("/iamport.js.html","/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**")
                         .permitAll()
-                        .requestMatchers("/api/users/**","/api/orders/**","/api/cart/**","/api/items/**","/api/auth/login", "/api/auth/register","/api/items/add","/api/hello").permitAll()
+                        .requestMatchers("/api/payment/**","/api/users/**","/api/orders/**","/api/cart/**","/api/items/**","/api/auth/login", "/api/auth/register","/api/items/add","/api/hello").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

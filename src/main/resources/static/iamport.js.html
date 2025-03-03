@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>결제 페이지</title>
+    <script src="https://cdn.iamport.kr/v1/iamport.js"></script>
+</head>
+<body>
+<h2>결제 페이지</h2>
+<button id="payBtn">결제하기</button>
+
+<script>
+    document.getElementById("payBtn").onclick = function () {
+        IMP.init("imp22747340"); // 아임포트 가맹점 아이디
+
+        IMP.request_pay({
+            pg: "kakaopay",
+            pay_method: "card",
+            merchant_uid: "merchant_" + new Date().getTime(), // 주문 ID (시간 기반)
+            name: "bbq",
+            amount: 1000, // 테스트 결제 금액
+            buyer_name: "2222",
+            buyer_email: "2222",
+            buyer_tel: "01012345678",
+            buyer_addr: "서울시 강남구",
+            buyer_postcode: "123-456"
+        }, function (rsp) {
+            if (rsp.success) {
+                alert("결제 성공: " + rsp.imp_uid);
+
+                // 결제 완료 후 서버에 imp_uid 전송
+                fetch(`/payment/complete`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        imp_uid: rsp.imp_uid,
+                        merchant_uid: rsp.merchant_uid,
+                        amount: rsp.paid_amount
+                    })
+                }).then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert("서버에 결제 완료 처리됨!");
+                        } else {
+                            alert("서버 처리 실패: " + data.message);
+                        }
+                    }).catch(error => {
+                    alert("서버 통신 실패: " + error.message);
+                });
+            } else {
+                alert("결제 실패: " + rsp.error_msg);
+            }
+        });
+    }
+
+
+
+
+</script>
+</body>
+</html>
