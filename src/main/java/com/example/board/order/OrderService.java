@@ -26,7 +26,6 @@ public class OrderService {
         order.setStatus(OrderStatus.PENDING);
         order.setOrderDate(LocalDateTime.now());
 
-
         Cart cart = cartRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("장바구니가 없습니다."));
 
@@ -51,6 +50,6 @@ public class OrderService {
     public void cancelOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("주문을 찾을 수 없습니다."));
-        order.setStatus(OrderStatus.CANCELED);
+        order.setStatus(OrderStatus.CANCELLED); // 수정된 부분
     }
 }

@@ -42,7 +42,7 @@ public class Cart {
     }
 
     // 총액을 재계산하는 메서드
-    private void recalculateTotalAmount() {
+    public void recalculateTotalAmount() {
         this.totalAmount = cartItems.stream()
                 .mapToInt(cartItem -> cartItem.getItem().getPrice() * cartItem.getQuantity())
                 .sum();

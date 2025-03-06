@@ -11,54 +11,72 @@
 <button id="payBtn">결제하기</button>
 
 <script>
-    document.getElementById("payBtn").onclick = function () {
-        IMP.init("imp22747340"); // 아임포트 가맹점 아이디
+    document.addEventListener("DOMContentLoaded", function () {
+        IMP.init("imp22747340"); // 최초 1회만 초기화
 
-        IMP.request_pay({
-            pg: "kakaopay",
-            pay_method: "card",
-            merchant_uid: "merchant_" + new Date().getTime(), // 주문 ID (시간 기반)
-            name: "bbq",
-            amount: 1000, // 테스트 결제 금액
-            buyer_name: "2222",
-            buyer_email: "2222",
-            buyer_tel: "01012345678",
-            buyer_addr: "서울시 강남구",
-            buyer_postcode: "123-456"
-        }, function (rsp) {
-            if (rsp.success) {
-                alert("결제 성공: " + rsp.imp_uid);
+        // payBtn이 로드된 후 이벤트 추가
+        document.getElementById("payBtn").addEventListener("click", function () {
+            const userInfo = {
+                amount: 1000, // 결제 금액
+                buyer_name: "홍길동",
+                buyer_email: "test@example.com",
+                buyer_tel: "010-1234-5678",
+                buyer_addr: "서울특별시 강남구",
+                buyer_postcode: "123-456"
+            };
 
-                // 결제 완료 후 서버에 imp_uid 전송
-                fetch(`/payment/complete`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        imp_uid: rsp.imp_uid,
-                        merchant_uid: rsp.merchant_uid,
-                        amount: rsp.paid_amount
-                    })
-                }).then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert("서버에 결제 완료 처리됨!");
-                        } else {
-                            alert("서버 처리 실패: " + data.message);
-                        }
-                    }).catch(error => {
-                    alert("서버 통신 실패: " + error.message);
-                });
-            } else {
-                alert("결제 실패: " + rsp.error_msg);
+            if (!userInfo.amount) {
+                alert("결제 금액을 확인해주세요.");
+                return;
             }
+
+            IMP.request_pay({
+                pg: "kakaopay", // 카카오페이 결제
+                pay_method: "kakaopay",
+                merchant_uid: "merchant_" + new Date().getTime(),
+                name: "테스트 상품",
+                amount: userInfo.amount,
+                buyer_name: userInfo.buyer_name,
+                buyer_email: userInfo.buyer_email,
+                buyer_tel: userInfo.buyer_tel,
+                buyer_addr: userInfo.buyer_addr,
+                buyer_postcode: userInfo.buyer_postcode
+            }, function (rsp) {
+                if (rsp.success) {
+                    alert("결제 성공: " + rsp.imp_uid);
+
+                    // 서버에 결제 완료 요청
+                    fetch("/api/payment/complete", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            imp_uid: rsp.imp_uid,
+                            merchant_uid: rsp.merchant_uid,
+                            amount: rsp.paid_amount
+                        })
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`서버 오류: ${response.status}`);
+                            }
+                            return response.json().catch(() => {
+                                throw new Error("서버 응답이 JSON 형식이 아닙니다.");
+                            });
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                alert("서버에 결제 완료 처리됨!");
+                            } else {
+                                alert("서버 처리 실패: " + data.message);
+                            }
+                        })
+                        .catch(error => alert("서버 통신 실패: " + error.message));
+                } else {
+                    alert("결제 실패: " + rsp.error_msg);
+                }
+            });
         });
-    }
-
-
-
-
+    });
 </script>
 </body>
 </html>

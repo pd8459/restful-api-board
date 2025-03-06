@@ -34,7 +34,6 @@ public class Order {
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
-    // Order 엔티티에 merchantUid 필드 추가
     private String merchantUid;
 
     private String impUid;
