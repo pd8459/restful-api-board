@@ -47,9 +47,12 @@ public class OrderService {
         return new OrderDto(order.getId(), order.getTotalAmount(), order.getStatus());
     }
 
-    public void cancelOrder(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("주문을 찾을 수 없습니다."));
-        order.setStatus(OrderStatus.CANCELLED); // 수정된 부분
+
+    public void deleteOrder(User user, Long orderId) {
+        Order order = orderRepository.findByIdAndUser(orderId, user)
+                .orElseThrow(() -> new RuntimeException("해당 주문을 찾을 수 없습니다."));
+
+        // 주문 삭제
+        orderRepository.delete(order);
     }
 }

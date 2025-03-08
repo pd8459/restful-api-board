@@ -1,8 +1,9 @@
 package com.example.board.payment;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.example.board.User.User;
+import com.example.board.User.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -11,16 +12,25 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 public class PaymentService {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+    private final PaymentRepository paymentRepository;
+    private final UserRepository userRepository;
 
-    // 직접 입력 방식으로 API 키와 비밀 키를 설정
-    private final String API_KEY = "";  // 본인의 API KEY
-    private final String API_SECRET = "";  // 본인의 API SECRET
+    @Value("${iamport.api.key}")
+    private String API_KEY;
 
-    // Iamport에서 인증 토큰 받기
+    @Value("${iamport.api.secret}")
+    private String API_SECRET;
+
+    // 생성자에서 UserRepository 주입
+    public PaymentService(RestTemplate restTemplate, PaymentRepository paymentRepository, UserRepository userRepository) {
+        this.restTemplate = restTemplate;
+        this.paymentRepository = paymentRepository;
+        this.userRepository = userRepository;
+    }
+
     public String getTokenFromIamport() {
         String url = "https://api.iamport.kr/users/getToken";
         Map<String, String> body = new HashMap<>();
@@ -39,41 +49,73 @@ public class PaymentService {
                 ObjectMapper objectMapper = new ObjectMapper();
                 Map<String, Object> responseMap = objectMapper.readValue(response.getBody(), Map.class);
 
-                if ("0".equals(responseMap.get("code").toString())) { // 응답 코드 0이 정상
+                if ("0".equals(responseMap.get("code").toString())) {
                     Map<String, Object> responseData = (Map<String, Object>) responseMap.get("response");
-                    return responseData != null ? responseData.get("access_token").toString() : null;
+                    return responseData != null ? responseData.get("access_token").toString() : "토큰 없음";
+                } else {
+                    return "토큰 발급 실패";
                 }
             }
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             e.printStackTrace();
+            return "서버 오류";
         }
-        return null;
+
+        return "토큰 발급 실패";
     }
 
-    // 결제 검증
-    public boolean verifyPayment(String token, String impUid, int amount) {
-        String url = "https://api.iamport.kr/payments/" + impUid;
+    public String validatePayment(String impUid, String userEmail) {
+        String token = getTokenFromIamport();
 
+        if (token == null) {
+            return "토큰 발급 실패";
+        }
+
+        String url = "https://api.iamport.kr/payments/" + impUid;
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", token);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + token);
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
-        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
 
-        if (response.getStatusCode() == HttpStatus.OK) {
-            try {
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+
+            if (response.getStatusCode() == HttpStatus.OK) {
                 ObjectMapper objectMapper = new ObjectMapper();
                 Map<String, Object> responseMap = objectMapper.readValue(response.getBody(), Map.class);
 
-                if ("0".equals(responseMap.get("code").toString())) { // 응답 코드 0이 정상
-                    Map<String, Object> paymentData = (Map<String, Object>) responseMap.get("response");
-                    int paidAmount = Integer.parseInt(paymentData.get("amount").toString());
-                    return paidAmount == amount;
-                }
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
+
+                Map<String, Object> responseData = (Map<String, Object>) responseMap.get("response");
+
+
+                User user = userRepository.findByEmail(userEmail)
+                        .orElseThrow(() -> new RuntimeException("사용자 미발견"));
+
+                Payment payment = Payment.builder()
+                        .impUid((String) responseData.get("imp_uid"))
+                        .merchantUid((String) responseData.get("merchant_uid"))
+                        .pgProvider((String) responseData.get("pg_provider"))
+                        .payMethod((String) responseData.get("pay_method"))
+                        .amount(Long.parseLong(responseData.get("amount").toString()))
+                        .status("paid")
+                        .buyerName((String) responseData.get("buyer_name"))
+                        .buyerEmail((String) responseData.get("buyer_email"))
+                        .paidAt(Long.parseLong(responseData.get("paid_at").toString()))
+                        .user(user)
+                        .build();
+
+
+                paymentRepository.save(payment);
+
+                return "결제 완료";
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "결제 검증 실패";
         }
-        return false;
+
+        return "결제 검증 실패";
     }
+
 }
