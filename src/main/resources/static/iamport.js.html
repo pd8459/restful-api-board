@@ -12,12 +12,11 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        IMP.init("imp22747340"); // 최초 1회만 초기화
+        IMP.init("imp22747340");
 
-        // payBtn이 로드된 후 이벤트 추가
         document.getElementById("payBtn").addEventListener("click", function () {
             const userInfo = {
-                amount: 1000, // 결제 금액
+                amount: 1000,
                 buyer_name: "홍길동",
                 buyer_email: "test@example.com",
                 buyer_tel: "010-1234-5678",
@@ -31,7 +30,7 @@
             }
 
             IMP.request_pay({
-                pg: "kakaopay", // 카카오페이 결제
+                pg: "kakaopay",
                 pay_method: "kakaopay",
                 merchant_uid: "merchant_" + new Date().getTime(),
                 name: "테스트 상품",
@@ -45,7 +44,6 @@
                 if (rsp.success) {
                     alert("결제 성공: " + rsp.imp_uid);
 
-                    // 서버에 결제 완료 요청
                     fetch("/api/payment/complete", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },

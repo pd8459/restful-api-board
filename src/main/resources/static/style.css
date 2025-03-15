@@ -1,0 +1,24 @@
+textarea {
+	width: 100%;
+}
+
+input[type=submit] {
+	margin-top: 10px;
+}
+.dropdown-menu {
+	display: none;
+}
+.nav-item:hover .dropdown-menu {
+	display: block;
+}
+.dropdown-item {
+	padding: 10px;
+	color: #333;
+	text-decoration: none;
+}
+.dropdown-item:hover {
+	background-color: #f1f1f1;
+}
+.dropdown-menu .dropdown-item {
+	padding-left: 20px;
+}

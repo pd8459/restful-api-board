@@ -24,7 +24,7 @@ public class PaymentService {
     @Value("${iamport.api.secret}")
     private String API_SECRET;
 
-    // 생성자에서 UserRepository 주입
+
     public PaymentService(RestTemplate restTemplate, PaymentRepository paymentRepository, UserRepository userRepository) {
         this.restTemplate = restTemplate;
         this.paymentRepository = paymentRepository;
@@ -89,21 +89,30 @@ public class PaymentService {
                 Map<String, Object> responseData = (Map<String, Object>) responseMap.get("response");
 
 
+                long paidAmount = Long.parseLong(responseData.get("amount").toString());
+
+
                 User user = userRepository.findByEmail(userEmail)
                         .orElseThrow(() -> new RuntimeException("사용자 미발견"));
+
 
                 Payment payment = Payment.builder()
                         .impUid((String) responseData.get("imp_uid"))
                         .merchantUid((String) responseData.get("merchant_uid"))
                         .pgProvider((String) responseData.get("pg_provider"))
                         .payMethod((String) responseData.get("pay_method"))
-                        .amount(Long.parseLong(responseData.get("amount").toString()))
+                        .amount(paidAmount)
                         .status("paid")
                         .buyerName((String) responseData.get("buyer_name"))
                         .buyerEmail((String) responseData.get("buyer_email"))
                         .paidAt(Long.parseLong(responseData.get("paid_at").toString()))
                         .user(user)
                         .build();
+
+
+                if (payment.getAmount() != paidAmount) {
+                    return "결제 금액 불일치";
+                }
 
 
                 paymentRepository.save(payment);

@@ -1,6 +1,8 @@
 package com.example.board.User;
 
+import com.example.board.security.LoginRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,6 +15,24 @@ import java.util.Optional;
 public class UserController {
 
     private final com.example.board.User.UserService userService;
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        Optional<User> userOptional = userService.getUserByEmail(loginRequest.getEmail());
+
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("등록되지 않은 이메일입니다.");
+        }
+
+        User user = userOptional.get();
+        if (!user.getPassword().equals(loginRequest.getPassword())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("비밀번호가 일치하지 않습니다.");
+        }
+
+        // 로그인 성공 (JWT 발급 가능)
+        return ResponseEntity.ok(UserDto.fromEntity(user));
+    }
+
 
 
     @PostMapping

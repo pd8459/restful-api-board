@@ -23,9 +23,12 @@ public class ItemService {
         item.setDescription(requestDto.getDescription());
         item.setPrice(requestDto.getPrice());
         item.setStock(requestDto.getStock());
+        item.setCategory(requestDto.getCategory());
+        item.setImageUrl(requestDto.getImageUrl());
 
         return itemRepository.save(item);
     }
+
 
     public Item getItemById(Long id) {
         return itemRepository.findById(id)

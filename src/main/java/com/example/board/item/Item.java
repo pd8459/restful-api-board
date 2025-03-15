@@ -30,8 +30,13 @@ public class Item {
     @Column(nullable = false)
     private int stock;
 
-    @Version
     @Column(nullable = false)
-    private int version;
+    private String category;
+
+    @Column(nullable = false)
+    private String imageUrl;
+
+    @Version
+    private Long version;
 
 }
