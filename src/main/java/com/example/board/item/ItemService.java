@@ -1,6 +1,9 @@
 package com.example.board.item;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,9 +38,6 @@ public class ItemService {
                 .orElseThrow(()-> new RuntimeException("아이템을 찾을 수 없습니다: " + id));
     }
 
-    public List<Item> getAllItmes() {
-        return itemRepository.findAll();
-    }
 
     public Item updateItem(Long id, ItemRequestDto requestDto) {
         Item item = itemRepository.findById(id)
@@ -55,5 +55,10 @@ public class ItemService {
                 .orElseThrow(()-> new RuntimeException("아이템을 찾을 수 없습니다"));
         itemRepository.delete(item);
         return true;
+    }
+
+
+    public Page<Item> gettwentyItems(Pageable pageable) {
+        return itemRepository.findAll(pageable);
     }
 }

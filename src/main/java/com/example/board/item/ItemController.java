@@ -2,11 +2,13 @@ package com.example.board.item;
 
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/items")
@@ -15,6 +17,9 @@ public class ItemController {
     @Autowired
     private ItemService itemService;
 
+    @Autowired
+    private ItemRepository itemRepository;
+
     @PostMapping("/add")
     public ResponseEntity<ItemResponseDto> addItem(@Valid @RequestBody ItemRequestDto requestDto) {
         Item savedItem = itemService.addItem(requestDto);
@@ -22,13 +27,21 @@ public class ItemController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ItemResponseDto>> getAllItem() {
-        List<Item> items = itemService.getAllItmes();
-        List<ItemResponseDto> responseDtos = items.stream()
-                .map(ItemResponseDto::new)
-                .toList();
-        return new ResponseEntity<>(responseDtos, HttpStatus.OK);
+    public ResponseEntity<Page<Item>> getItems(@RequestParam String category, @RequestParam int page) {
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Item> items;
+
+        if ("women".equals(category)) {
+            items = itemRepository.findByCategory("women", pageable);
+        } else if ("men".equals(category)) {
+            items = itemRepository.findByCategory("men", pageable);
+        } else {
+            items = itemRepository.findAll(pageable);
+        }
+
+        return ResponseEntity.ok(items);
     }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<ItemResponseDto> getItemById(@PathVariable Long id){

@@ -44,7 +44,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/images/**", "/css/**", "/js/**","/iamport.js.html","/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**")
                         .permitAll()
-                        .requestMatchers("/add_item.html","/womens_category.html","/mens_category.html","/home.html","/WEB-INF/views/**","/login","/signup","/signup.html","login.html","/api/payment/**","/api/users/**","/api/orders/**","/api/cart/**","/api/items/**","/api/auth/login", "/api/auth/register","/api/items/add","/api/hello").permitAll()
+                        .requestMatchers("/navbar.html","/layout.html","/add_item.html","/womens_category.html","/mens_category.html","/home.html","/WEB-INF/views/**","/login","/signup","/signup.html","login.html","/api/payment/**","/api/users/**","/api/orders/**","/api/cart/**","/api/items/**","/api/auth/login", "/api/auth/register","/api/items/add","/api/hello").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
