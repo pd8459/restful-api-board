@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Your Cart</title>
+    <style>
+        /* 기존 스타일 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            text-align: center;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+
+        form {
+            display: inline;
+        }
+
+        p {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .cart-container {
+            margin: 20px auto;
+            max-width: 800px;
+        }
+
+        .total-amount {
+            text-align: right;
+        }
+
+        .checkout-btn {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="cart-container">
+    <h1>Your Shopping Cart</h1>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Item Name</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Total</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        <tbody id="cart-items"></tbody>
+    </table>
+
+    <p class="total-amount">Total Amount: <span id="total-amount">0</span></p>
+
+    <button class="checkout-btn" onclick="window.location.href='/checkout'">Proceed to Checkout</button>
+</div>
+
+<script>
+    function getEmailFromLocalStorage() {
+        const email = localStorage.getItem('userEmail');  // localStorage에서 이메일 가져오기
+        if (!email) {
+            alert('로그인 후 장바구니를 확인할 수 있습니다.');
+            return null;
+        }
+        return email;
+    }
+
+    function loadCart() {
+        const email = getEmailFromLocalStorage();  // 이메일 가져오기
+        if (!email) {
+            return;
+        }
+
+        fetch(`/api/cart?email=${email}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch cart data');
+                }
+                return response.json();
+            })
+            .then(data => {
+                let cartItemsHtml = '';
+                let totalAmount = 0;
+                data.forEach(item => {
+                    const itemTotal = item.item.price * item.quantity;
+                    totalAmount += itemTotal;
+                    cartItemsHtml += `
+                        <tr>
+                            <td>${item.item.name}</td>
+                            <td>${item.quantity}</td>
+                            <td>${item.item.price}</td>
+                            <td>${itemTotal}</td>
+                            <td>
+                                <button onclick="removeItem(${item.cartItemId})">Remove</button>
+                                <button onclick="updateItem(${item.cartItemId})">Update</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('cart-items').innerHTML = cartItemsHtml;
+                document.getElementById('total-amount').innerText = totalAmount;
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    function removeItem(cartItemId) {
+        const email = getEmailFromLocalStorage();  // 이메일 가져오기
+        if (!email) {
+            return;
+        }
+
+        fetch(`/api/cart/remove?email=${email}&cartItemId=${cartItemId}`, {
+            method: 'DELETE'
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to remove item');
+                }
+                return response.json();
+            })
+            .then(() => loadCart()) // 삭제 후 장바구니 다시 불러오기
+            .catch(error => console.error('Error:', error));
+    }
+
+    function updateItem(cartItemId) {
+        const email = getEmailFromLocalStorage();  // 이메일 가져오기
+        if (!email) {
+            return;
+        }
+
+        const quantity = prompt("Enter new quantity:");
+        if (!quantity || isNaN(quantity) || quantity <= 0) {
+            alert("올바른 숫자를 입력하세요.");
+            return;
+        }
+
+        fetch(`/api/cart/update?email=${email}&cartItemId=${cartItemId}&quantity=${quantity}`, {
+            method: 'POST'
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to update item');
+                }
+                return response.json();
+            })
+            .then(() => loadCart()) // 업데이트 후 장바구니 다시 불러오기
+            .catch(error => console.error('Error:', error));
+    }
+
+    // 페이지가 로드될 때 장바구니 항목을 불러옵니다.
+    window.onload = loadCart;
+</script>
+</body>
+</html>

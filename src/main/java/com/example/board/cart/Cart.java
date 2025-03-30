@@ -27,10 +27,8 @@ public class Cart {
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<CartItem> cartItems = new ArrayList<>();
 
-    // 총액을 저장하는 필드
     private int totalAmount;
 
-    // CartItem이 추가되거나 삭제될 때 총액을 갱신
     public void addCartItem(CartItem cartItem) {
         cartItems.add(cartItem);
         recalculateTotalAmount();
@@ -41,7 +39,6 @@ public class Cart {
         recalculateTotalAmount();
     }
 
-    // 총액을 재계산하는 메서드
     public void recalculateTotalAmount() {
         this.totalAmount = cartItems.stream()
                 .mapToInt(cartItem -> cartItem.getItem().getPrice() * cartItem.getQuantity())

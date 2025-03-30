@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout}"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <title>Men's Category</title>
+    <style>
+        .items-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        .item {
+            width: 22%;
+            text-align: center;
+        }
+        .item img {
+            width: 100%;
+            max-width: 180px;
+            height: auto;
+        }
+        @media (max-width: 768px) {
+            .item {
+                width: 48%;
+            }
+            .item img {
+                max-width: 150px;
+            }
+        }
+        @media (max-width: 480px) {
+            .item {
+                width: 100%;
+            }
+            .item img {
+                max-width: 120px;
+            }
+        }
+    </style>
+</head>
+<div layout:fragment="content">
+    <h1>Men's Category</h1>
+    <div class="items-container" id="items-container"></div>
+
+    <div class="mt-4">
+        <ul class="pagination justify-content-center" id="pagination-container"></ul>
+    </div>
+
+    <script>
+        let currentPage = 0;
+        const itemsPerPage = 20;
+
+        function loadItems(page) {
+            fetch(`/api/items?category=men&page=${page}`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('items-container');
+                    const paginationContainer = document.getElementById('pagination-container');
+                    container.innerHTML = '';
+                    paginationContainer.innerHTML = '';
+
+                    data.content.forEach(item => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.classList.add('item');
+                        itemDiv.innerHTML = `
+                            <a href="/itemdetail/${item.id}">
+                                <img src="${item.imageUrl}" alt="Item Image"/>
+                                <h3>${item.name}</h3>
+                            </a>
+                        `;
+                        container.appendChild(itemDiv);
+                    });
+
+                    const totalPages = data.totalPages;
+                    const pageLinks = [];
+
+                    const prevButton = document.createElement('li');
+                    prevButton.classList.add('page-item');
+                    if (currentPage === 0) {
+                        prevButton.classList.add('disabled');
+                    }
+                    prevButton.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1})">Previous</a>`;
+                    pageLinks.push(prevButton);
+
+                    for (let i = 0; i < totalPages; i++) {
+                        const pageButton = document.createElement('li');
+                        pageButton.classList.add('page-item');
+                        if (i === currentPage) {
+                            pageButton.classList.add('active');
+                        }
+                        pageButton.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i + 1}</a>`;
+                        pageLinks.push(pageButton);
+                    }
+
+                    const nextButton = document.createElement('li');
+                    nextButton.classList.add('page-item');
+                    if (currentPage === totalPages - 1) {
+                        nextButton.classList.add('disabled');
+                    }
+                    nextButton.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1})">Next</a>`;
+                    pageLinks.push(nextButton);
+
+                    pageLinks.forEach(link => paginationContainer.appendChild(link));
+                })
+                .catch(error => console.error('Error loading items:', error));
+        }
+
+        function changePage(page) {
+            if (page >= 0) {
+                currentPage = page;
+                loadItems(currentPage);
+            }
+        }
+
+        window.onload = function() {
+            loadItems(currentPage);
+        };
+    </script>
+</div>
+</html>

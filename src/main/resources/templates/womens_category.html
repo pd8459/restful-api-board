@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html layout:decorate="~{layout}"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
 <head>
-    <meta charset="UTF-8">
     <title>Women's Category</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         .items-container {
             display: flex;
@@ -38,26 +38,13 @@
         }
     </style>
 </head>
-<body>
-<div class="container my-3">
-    <nav class="navbar navbar-expand-lg navbar-light bg-light mb-3">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/home.html">쇼핑몰</a>
-            <div class="ms-auto d-flex">
-                <a class="navbar-brand me-3" href="/login.html">로그인</a>
-                <a class="navbar-brand" href="/signup.html">회원가입</a>
-            </div>
-        </div>
-    </nav>
+<div layout:fragment="content">
     <h1>Women's Category</h1>
-    <div class="items-container" id="items-container">
-    </div>
+    <div class="items-container" id="items-container"></div>
 
     <div class="mt-4">
-        <ul class="pagination justify-content-center" id="pagination-container">
-        </ul>
+        <ul class="pagination justify-content-center" id="pagination-container"></ul>
     </div>
-</div>
 
 <script>
     let currentPage = 0;
@@ -119,7 +106,7 @@
     }
 
     function changePage(page) {
-        if (page < 0 || page >= 0) {
+        if (page >= 0) {
             currentPage = page;
             loadItems(currentPage);
         }
@@ -129,7 +116,5 @@
         loadItems(currentPage);
     };
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+</div>
 </html>

@@ -56,9 +56,4 @@ public class ItemService {
         itemRepository.delete(item);
         return true;
     }
-
-
-    public Page<Item> gettwentyItems(Pageable pageable) {
-        return itemRepository.findAll(pageable);
-    }
 }

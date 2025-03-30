@@ -17,7 +17,7 @@ public class SignupController {
 
     @GetMapping("/signup")
     public String signupPage() {
-        return "signup.html";
+        return "signup";
     }
 
     @PostMapping("/signup")
@@ -27,10 +27,10 @@ public class SignupController {
         UserDto response = restTemplate.postForObject(apiUrl, userDto, UserDto.class);
 
         if (response != null) {
-            return "redirect:/login.html";
+            return "redirect:/login";
         } else {
             model.addAttribute("error", "회원가입 실패");
-            return "signup.html";
+            return "signup";
         }
     }
 }

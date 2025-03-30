@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="navbar">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light mb-3">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/home">쇼핑몰</a>
+            <div class="ms-auto d-flex">
+                <a id="loginLink" class="navbar-brand me-3" href="/login">로그인</a>
+                <a id="signupLink" class="navbar-brand me-3" href="/signup">회원가입</a>
+                <a id="logoutLink" class="navbar-brand me-3 d-none" href="#">로그아웃</a>
+                <a id="cart" class="navbar-brand me-3" href="/cart">장바구니</a>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<script>
+    function updateNavbar() {
+        const token = localStorage.getItem('token');
+        if (token) {
+            document.getElementById('loginLink').classList.add('d-none');
+            document.getElementById('signupLink').classList.add('d-none');
+            document.getElementById('logoutLink').classList.remove('d-none');
+            document.getElementById('cart').classList.remove('d-none');
+        } else {
+            document.getElementById('loginLink').classList.remove('d-none');
+            document.getElementById('signupLink').classList.remove('d-none');
+            document.getElementById('logoutLink').classList.add('d-none');
+            document.getElementById('cart').classList.remove('d-none');
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('userEmail');
+        updateNavbar();
+        window.location.href = "/home";
+    }
+
+    window.addEventListener('DOMContentLoaded', updateNavbar);
+
+    document.getElementById("logoutLink").addEventListener("click", function(event) {
+        event.preventDefault();
+        logout();
+    });
+</script>
+
+</body>
+</html>

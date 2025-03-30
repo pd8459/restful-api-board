@@ -26,23 +26,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-
         String token = getJwtFromRequest(request);
 
-
         if (token != null && jwtUtil.validateToken(token)) {
-            String username = jwtUtil.getUsernameFromToken(token);
-
+            String email = jwtUtil.getEmailFromToken(token);  // 변경된 메서드 사용
 
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(username, null, null);
+                    new UsernamePasswordAuthenticationToken(email, null, null);  // 이메일을 사용하여 인증 객체 생성
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
-
         filterChain.doFilter(request, response);
     }
-
 
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");

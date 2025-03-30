@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout}"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <title>아이템 상세</title>
+    <style>
+        .item-detail {
+            padding: 20px;
+        }
+        .item-image img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div layout:fragment="content">
+    <div class="item-detail">
+        <h1 id="item-name">아이템 이름</h1>
+        <p id="item-description">아이템 설명</p>
+        <p id="item-price">가격</p>
+        <div class="item-image">
+            <img src="" alt="아이템 이미지" />
+        </div>
+        <button id="add-to-cart-btn">장바구니에 추가</button>
+    </div>
+
+
+<script>
+    window.onload = function() {
+        const itemId = window.location.pathname.split("/").pop();
+        fetchItemDetails(itemId);
+        setupAddToCartButton(itemId);
+    }
+
+    function fetchItemDetails(itemId) {
+        fetch(`/api/items/${itemId}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("item-name").textContent = data.name;
+                document.getElementById("item-description").textContent = data.description;
+                document.getElementById("item-price").textContent = `가격: ${data.price} 원`;
+                document.querySelector(".item-image img").src = data.imageUrl;
+            })
+            .catch(error => {
+                console.error("아이템 정보를 불러오는 중 오류 발생:", error);
+            });
+    }
+
+    function setupAddToCartButton(itemId) {
+        const addToCartButton = document.getElementById("add-to-cart-btn");
+
+        addToCartButton.addEventListener("click", function() {
+            const email = localStorage.getItem('userEmail');
+            if (!email) {
+                alert("로그인 후 장바구니에 추가할 수 있습니다.");
+                return;
+            }
+
+            const quantity = 1;
+
+            const cartRequest = {
+                email: email,
+                itemId: itemId,
+                quantity: quantity
+            };
+
+            fetch('/api/cart/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(cartRequest)
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(text => { throw new Error(text.message); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    alert(data);
+                })
+                .catch(error => {
+                    alert("장바구니 추가 실패: " + error.message);
+                });
+        });
+    }
+</script>
+</div>
+</body>
+
+</html>
