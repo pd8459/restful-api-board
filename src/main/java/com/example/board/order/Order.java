@@ -33,11 +33,14 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
-
     private String merchantUid;
-
     private String impUid;
-    private int amount;
+    private long amount;
+    private String postcode;
+    private String roadAddress;
+    private String jibunAddress;
+    private String detailAddress;
+    private String extraAddress;
 
     public Order(User user, int totalAmount) {
         this.user = user;
@@ -50,6 +53,4 @@ public class Order {
         orderItems.add(orderItem);
         orderItem.setOrder(this);
     }
-
-
 }

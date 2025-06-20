@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout}" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <meta charset="UTF-8">
+    <title>주문 페이지</title>
+    <style>
+        .form-group { margin-bottom: 15px; }
+        input[type="text"], input[type="button"] {
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        #sample4_postcode,
+        #sample4_roadAddress,
+        #sample4_jibunAddress,
+        #sample4_detailAddress,
+        #sample4_extraAddress { margin-bottom: 10px; }
+        #sample4_execDaumPostcode { margin-top: 5px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+    <h1>배송 정보 입력</h1>
+    <div class="form-group">
+        <input type="text" id="sample4_postcode" placeholder="우편번호">
+        <input type="button" onclick="sample4_execDaumPostcode()" value="우편번호 찾기"><br>
+        <input type="text" id="sample4_roadAddress" placeholder="도로명주소">
+        <input type="text" id="sample4_jibunAddress" placeholder="지번주소">
+        <span id="guide" style="color:#999; display:none"></span>
+        <input type="text" id="sample4_detailAddress" placeholder="상세주소">
+        <input type="text" id="sample4_extraAddress" placeholder="참고항목">
+    </div>
+
+    <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    <script>
+        function sample4_execDaumPostcode() {
+            new daum.Postcode({
+                oncomplete: function (data) {
+                    var roadAddr = data.roadAddress;
+                    var extraRoadAddr = '';
+                    if (data.bname !== '' && /[동|로|가]$/g.test(data.bname)) {
+                        extraRoadAddr += data.bname;
+                    }
+                    if (data.buildingName !== '' && data.apartment === 'Y') {
+                        extraRoadAddr += (extraRoadAddr !== '' ? ', ' + data.buildingName : data.buildingName);
+                    }
+                    if (extraRoadAddr !== '') {
+                        extraRoadAddr = ' (' + extraRoadAddr + ')';
+                    }
+                    document.getElementById('sample4_postcode').value = data.zonecode;
+                    document.getElementById("sample4_roadAddress").value = roadAddr;
+                    document.getElementById("sample4_jibunAddress").value = data.jibunAddress;
+                    document.getElementById("sample4_extraAddress").value = roadAddr !== '' ? extraRoadAddr : '';
+                    var guideTextBox = document.getElementById("guide");
+                    if (data.autoRoadAddress) {
+                        var expRoadAddr = data.autoRoadAddress + extraRoadAddr;
+                        guideTextBox.innerHTML = '(예상 도로명 주소 : ' + expRoadAddr + ')';
+                        guideTextBox.style.display = 'block';
+                    } else if (data.autoJibunAddress) {
+                        var expJibunAddr = data.autoJibunAddress;
+                        guideTextBox.innerHTML = '(예상 지번 주소 : ' + expJibunAddr + ')';
+                        guideTextBox.style.display = 'block';
+                    } else {
+                        guideTextBox.innerHTML = '';
+                        guideTextBox.style.display = 'none';
+                    }
+                }
+            }).open();
+        }
+    </script>
+
+    <h2>주문 상품 정보</h2>
+    <table id="order-items" style="border-collapse: collapse;">
+        <thead>
+        <tr>
+            <th style="border: 1px solid #ddd; padding: 8px;">이미지</th>
+            <th style="border: 1px solid #ddd; padding: 8px;">상품명</th>
+            <th style="border: 1px solid #ddd; padding: 8px;">수량</th>
+            <th style="border: 1px solid #ddd; padding: 8px;">가격</th>
+            <th style="border: 1px solid #ddd; padding: 8px;">합계</th>
+        </tr>
+        </thead>
+        <tbody id="order-items-body">
+        <!-- loadOrderItems() 함수로 장바구니에서 불러온 내용이 채워질 예정 -->
+        </tbody>
+    </table>
+    <p style="text-align: right; margin-top: 10px;">총 주문 금액: <strong id="order-total">0</strong> 원</p>
+
+    <script>
+        // 장바구니에서 주문 상품 정보를 불러오는 함수
+        function loadOrderItems() {
+            const email = localStorage.getItem('userEmail');
+            if (!email) {
+                alert('로그인 후 주문이 가능합니다.');
+                return;
+            }
+            fetch(`/api/cart?email=${email}`)
+                .then(res => res.json())
+                .then(data => {
+                    const tbody = document.getElementById('order-items-body');
+                    let total = 0;
+                    let html = '';
+                    data.forEach(item => {
+                        // item.itemId, item.itemName, item.quantity, item.price, item.imageUrl 등 프론트에서 보내는 JSON 필드 확인
+                        const itemTotal = item.price * item.quantity;
+                        total += itemTotal;
+                        html += `
+              <tr data-item-id="${item.itemId}">
+                <td style="border: 1px solid #ddd; padding: 8px;">
+                  <img src="${item.imageUrl}" alt="${item.itemName}" style="width:50px; height:50px; object-fit:cover;">
+                </td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${item.itemName}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;" class="item-quantity">${item.quantity}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;" class="item-price">${item.price}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${itemTotal}</td>
+              </tr>
+            `;
+                    });
+                    tbody.innerHTML = html;
+                    document.getElementById('order-total').textContent = total.toLocaleString();
+                })
+                .catch(err => {
+                    console.error('주문 상품 정보를 불러오는 중 오류 발생:', err);
+                });
+        }
+
+        document.addEventListener("DOMContentLoaded", loadOrderItems);
+    </script>
+
+    <div style="text-align: right; margin-top: 20px;">
+        <button id="pay-button" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+            결제하기
+        </button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const IMP = window.IMP;
+            IMP.init("imp22747340");
+        });
+    </script>
+
+    <script>
+        document.getElementById('pay-button').addEventListener('click', function () {
+            const email = localStorage.getItem('userEmail');
+            if (!email) {
+                alert('로그인 후 결제를 진행해주세요.');
+                return;
+            }
+
+            const orderData = {
+                email: email,
+                postcode: document.getElementById('sample4_postcode').value,
+                roadAddress: document.getElementById('sample4_roadAddress').value,
+                jibunAddress: document.getElementById('sample4_jibunAddress').value,
+                detailAddress: document.getElementById('sample4_detailAddress').value,
+                extraAddress: document.getElementById('sample4_extraAddress').value
+            };
+
+            if (!orderData.postcode || !orderData.roadAddress || !orderData.detailAddress) {
+                alert('배송지를 모두 입력해주세요.');
+                return;
+            }
+
+            const totalAmount = Number(document.getElementById('order-total').textContent.replace(/,/g, ''));
+            if (!totalAmount || totalAmount <= 0) {
+                alert('결제 금액이 올바르지 않습니다.');
+                return;
+            }
+
+            const merchantUid = "merchant_" + new Date().getTime();
+            const IMP = window.IMP;
+
+            IMP.request_pay({
+                pg: "kakaopay",
+                pay_method: "kakaopay",
+                merchant_uid: merchantUid,
+                name: "상품 주문 결제",
+                amount: totalAmount,
+                buyer_email: email,
+                buyer_name: "주문자",
+                buyer_tel: "010-1234-5678",
+                buyer_addr: `${orderData.roadAddress} ${orderData.detailAddress}`,
+                buyer_postcode: orderData.postcode
+            }, function (rsp) {
+                if (rsp.success) {
+                    // 주문 상품 정보 수집
+                    const orderItems = [];
+                    document.querySelectorAll('#order-items-body tr').forEach(row => {
+                        const itemId = row.getAttribute('data-item-id');
+                        const quantityElement = row.querySelector('.item-quantity');
+                        const priceElement = row.querySelector('.item-price');
+                        if (itemId && quantityElement && priceElement) {
+                            const item = {
+                                itemId: parseInt(itemId),
+                                quantity: parseInt(quantityElement.textContent),
+                                price: parseInt(priceElement.textContent)
+                            };
+                            orderItems.push(item);
+                        }
+                    });
+
+                    fetch(`/api/orders/create`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            merchantUid: merchantUid,
+                            totalAmount: totalAmount,
+                            impUid: rsp.imp_uid,
+                            address: {
+                                postcode: orderData.postcode,
+                                roadAddress: orderData.roadAddress,
+                                jibunAddress: orderData.jibunAddress,
+                                detailAddress: orderData.detailAddress,
+                                extraAddress: orderData.extraAddress
+                            },
+                            items: orderItems  // 주문 상품 정보를 전송
+                        })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log("주문 응답 데이터:", data);
+                            if (data && data.id) {
+                                const impUid = rsp.imp_uid;
+                                fetch(`/api/payment/validate/${impUid}?userEmail=${email}`)
+                                    .then(response => response.json())
+                                    .then(validateResult => {
+                                        console.log("검증 결과:", validateResult);
+                                        if (validateResult.success) {
+                                            alert("결제 및 주문이 성공적으로 완료되었습니다!");
+                                            window.location.href = "/success?orderId=" + validateResult.orderId;
+                                        } else {
+                                            alert("결제 실패: " + validateResult.message);
+                                            window.location.href = "/cart";
+                                        }
+                                    });
+                            } else {
+                                alert("주문 생성에 실패했습니다.");
+                                window.location.href = "/cart";
+                            }
+                        })
+                        .catch(err => {
+                            console.error("주문 생성 요청 중 오류 발생:", err);
+                            alert("주문 생성 요청 중 오류가 발생했습니다.");
+                        });
+                } else {
+                    alert("결제에 실패했습니다: " + rsp.error_msg);
+                    window.location.href = "/cart";
+                }
+            });
+        });
+    </script>
+</div>
+</body>
+</html>

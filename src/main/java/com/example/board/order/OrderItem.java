@@ -31,5 +31,7 @@ public class OrderItem {
         this.item = item;
         this.quantity = quantity;
         this.price = item.getPrice() * quantity;
+
+        order.addOrderItem(this);
     }
 }

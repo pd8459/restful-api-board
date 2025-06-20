@@ -2,21 +2,30 @@ package com.example.board.payment;
 
 import com.example.board.User.User;
 import com.example.board.User.UserRepository;
+import com.example.board.order.Order;
+import com.example.board.order.OrderRepository;
+import com.example.board.payment.IamportTokenRequest;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import com.example.board.order.OrderStatus;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class PaymentService {
 
     private final RestTemplate restTemplate;
     private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
+    private final OrderRepository orderRepository;
 
     @Value("${iamport.api.key}")
     private String API_KEY;
@@ -25,25 +34,36 @@ public class PaymentService {
     private String API_SECRET;
 
 
-    public PaymentService(RestTemplate restTemplate, PaymentRepository paymentRepository, UserRepository userRepository) {
-        this.restTemplate = restTemplate;
-        this.paymentRepository = paymentRepository;
-        this.userRepository = userRepository;
-    }
+    private String cachedToken;
+    private long tokenExpiryTime;
 
-    public String getTokenFromIamport() {
+    public synchronized String getTokenFromIamport() {
+        System.out.println("API_KEY: " + API_KEY);
+        System.out.println("API_SECRET: " + API_SECRET);
+
+        long now = System.currentTimeMillis() / 1000;
+
+        if (cachedToken != null && now < tokenExpiryTime) {
+            return cachedToken;
+        }
+
         String url = "https://api.iamport.kr/users/getToken";
-        Map<String, String> body = new HashMap<>();
-        body.put("imp_key", API_KEY);
-        body.put("imp_secret", API_SECRET);
+        IamportTokenRequest request = new IamportTokenRequest(API_KEY, API_SECRET);
+
+        try {
+            String jsonPayload = new ObjectMapper().writeValueAsString(request);
+            System.out.println("JSON Payload: " + jsonPayload);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-
-        HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);
+        HttpEntity<IamportTokenRequest> entity = new HttpEntity<>(request, headers);
 
         try {
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+            System.out.println("Iamport API 응답 Body: " + response.getBody());
 
             if (response.getStatusCode() == HttpStatus.OK) {
                 ObjectMapper objectMapper = new ObjectMapper();
@@ -51,24 +71,30 @@ public class PaymentService {
 
                 if ("0".equals(responseMap.get("code").toString())) {
                     Map<String, Object> responseData = (Map<String, Object>) responseMap.get("response");
-                    return responseData != null ? responseData.get("access_token").toString() : "토큰 없음";
+                    cachedToken = responseData.get("access_token").toString();
+                    tokenExpiryTime = Long.parseLong(responseData.get("expired_at").toString());
+
+                    return cachedToken;
                 } else {
-                    return "토큰 발급 실패";
+                    throw new RuntimeException("토큰 발급 실패: " + responseMap.get("message"));
                 }
             }
         } catch (Exception e) {
+            System.err.println("토큰 발급 중 오류 발생: " + e.getMessage());
             e.printStackTrace();
-            return "서버 오류";
+            throw new RuntimeException("Iamport 토큰 발급 실패", e);
         }
 
-        return "토큰 발급 실패";
+        throw new RuntimeException("Iamport 토큰 발급 실패");
     }
 
-    public String validatePayment(String impUid, String userEmail) {
+
+    @Transactional
+    public Long validatePayment(String impUid, String userEmail) {
         String token = getTokenFromIamport();
 
         if (token == null) {
-            return "토큰 발급 실패";
+            throw new IllegalStateException("아임포트 토큰 발급 실패");
         }
 
         String url = "https://api.iamport.kr/payments/" + impUid;
@@ -84,47 +110,49 @@ public class PaymentService {
             if (response.getStatusCode() == HttpStatus.OK) {
                 ObjectMapper objectMapper = new ObjectMapper();
                 Map<String, Object> responseMap = objectMapper.readValue(response.getBody(), Map.class);
-
-
                 Map<String, Object> responseData = (Map<String, Object>) responseMap.get("response");
 
-
                 long paidAmount = Long.parseLong(responseData.get("amount").toString());
+                String merchantUid = (String) responseData.get("merchant_uid");
 
+                System.out.println("API에서 받은 금액: " + paidAmount);
+                System.out.println("merchantUid: " + merchantUid);
 
-                User user = userRepository.findByEmail(userEmail)
-                        .orElseThrow(() -> new RuntimeException("사용자 미발견"));
+                Order order = orderRepository.findByMerchantUid(merchantUid)
+                        .orElseThrow(() -> new RuntimeException("주문을 찾을 수 없습니다."));
 
-
-                Payment payment = Payment.builder()
-                        .impUid((String) responseData.get("imp_uid"))
-                        .merchantUid((String) responseData.get("merchant_uid"))
-                        .pgProvider((String) responseData.get("pg_provider"))
-                        .payMethod((String) responseData.get("pay_method"))
-                        .amount(paidAmount)
-                        .status("paid")
-                        .buyerName((String) responseData.get("buyer_name"))
-                        .buyerEmail((String) responseData.get("buyer_email"))
-                        .paidAt(Long.parseLong(responseData.get("paid_at").toString()))
-                        .user(user)
-                        .build();
-
-
-                if (payment.getAmount() != paidAmount) {
-                    return "결제 금액 불일치";
+                if (order.getTotalAmount() != paidAmount) {
+                    System.out.println("주문 금액: " + order.getTotalAmount());
+                    throw new IllegalStateException("결제 금액 불일치");
                 }
 
+                User user = userRepository.findByEmail(userEmail)
+                        .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-                paymentRepository.save(payment);
+                if (!order.getUser().getId().equals(user.getId())) {
+                    throw new IllegalStateException("주문자와 유저 정보 불일치");
+                }
 
-                return "결제 완료";
+                order.setStatus(OrderStatus.SUCCESS);
+
+                return order.getId();
+            } else {
+                throw new IllegalStateException("결제 검증 실패: 아임포트 API 응답 오류");
             }
         } catch (Exception e) {
             e.printStackTrace();
-            return "결제 검증 실패";
+            throw new IllegalStateException("결제 검증 실패", e);
         }
-
-        return "결제 검증 실패";
     }
 
+
+
+
+    public String getApiKey() {
+        return API_KEY;
+    }
+
+    public String getApiSecret() {
+        return API_SECRET;
+    }
 }

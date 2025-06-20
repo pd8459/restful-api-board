@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout}" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <meta charset="UTF-8">
+    <title>결제 성공</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+        }
+        .container {
+            max-width: 700px;
+            margin: auto;
+        }
+        h2 {
+            color: #2c3e50;
+        }
+        .section {
+            margin-top: 30px;
+        }
+        .section h3 {
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+        }
+        .section p, .section li {
+            line-height: 1.8;
+        }
+        ul {
+            padding-left: 20px;
+        }
+    </style>
+</head>
+
+<body>
+<div layout:fragment="content">
+    <div class="container">
+        <h2>결제가 성공적으로 완료되었습니다!</h2>
+
+        <div id="orderDetails" class="section">
+            <h3>주문 정보</h3>
+            <p>불러오는 중...</p>
+        </div>
+
+        <div id="addressDetails" class="section">
+            <h3>배송지 정보</h3>
+            <p>불러오는 중...</p>
+        </div>
+
+        <div id="itemList" class="section">
+            <h3>주문한 상품</h3>
+            <p>불러오는 중...</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderId = urlParams.get("orderId");
+
+            if (orderId) {
+                fetch(`/api/orders/get/${orderId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        document.getElementById("orderDetails").innerHTML = `
+                            <h3>주문 정보</h3>
+                            <p><strong>주문 번호:</strong> ${data.id}</p>
+                            <p><strong>구매자 이메일:</strong> ${data.email}</p>
+                            <p><strong>총 금액:</strong> ${data.totalAmount.toLocaleString()}원</p>
+                            <p><strong>주문 상태:</strong> ${data.status}</p>
+                            <p><strong>주문 일자:</strong> ${data.orderDate}</p>
+                            <p><strong>상점 주문번호:</strong> ${data.merchantUid}</p>
+                        `;
+
+                        document.getElementById("addressDetails").innerHTML = `
+                            <h3>배송지 정보</h3>
+                            <p><strong>우편번호:</strong> ${data.postcode}</p>
+                            <p><strong>도로명 주소:</strong> ${data.roadAddress}</p>
+                            <p><strong>지번 주소:</strong> ${data.jibunAddress}</p>
+                            <p><strong>상세 주소:</strong> ${data.detailAddress}</p>
+                            <p><strong>추가 주소:</strong> ${data.extraAddress}</p>
+                        `;
+
+                        const itemList = data.items || [];
+                        if (itemList.length > 0) {
+                            const listHtml = itemList.map(item => `
+                                <li>
+                                    <strong>${item.itemName}</strong> - 수량: ${item.quantity}개 / 가격: ${item.price.toLocaleString()}원
+                                </li>
+                            `).join("");
+                            document.getElementById("itemList").innerHTML = `
+                                <h3>주문한 상품</h3>
+                                <ul>${listHtml}</ul>
+                            `;
+                        } else {
+                            document.getElementById("itemList").innerHTML = `
+                                <h3>주문한 상품</h3>
+                                <p>상품 정보가 없습니다.</p>
+                            `;
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        document.getElementById("orderDetails").innerHTML = `<p>주문 정보를 불러오는 데 실패했습니다.</p>`;
+                    });
+            } else {
+                document.getElementById("orderDetails").innerHTML = `<p>주문 ID가 없습니다.</p>`;
+            }
+        });
+    </script>
+</div>
+</body>
+</html>

@@ -42,9 +42,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/images/**", "/css/**", "/js/**","/iamport.js.html","/swagger", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**")
+                        .requestMatchers("/api/validate/**","/api/order/**","/api/payment/**","/images/**", "/css/**", "/js/**","/iamport.js.html","/swagger", "/swagger-ui/**", "/api-docs", "/api-docs/**", "/v3/api-docs/**")
                         .permitAll()
-                        .requestMatchers("/itemdetail/**","/cart/**","/layout/**","/add_item/**","/womens_category/**","/mens_category/**","/home/**","/WEB-INF/views/**","/login/**","/signup/**","/api/payment/**","/api/users/**","/api/orders/**","/api/cart/**","/api/items/**","/api/auth/login", "/api/auth/register","/api/items/add","/api/hello").permitAll()
+                        .requestMatchers("/success/**","/iamport/**","/order/**","/itemdetail/**","/cart/**","/layout/**","/add_item/**","/womens_category/**","/mens_category/**","/home/**","/WEB-INF/views/**","/login/**","/signup/**","/api/payment/**","/api/users/**","/api/orders/**","/api/cart/**","/api/items/**","/api/auth/login", "/api/auth/register","/api/items/add","/api/hello").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -34,7 +34,7 @@ public class AuthController {
         }
 
         String token = jwtUtil.generateToken(user.getEmail());
-        JwtResponse jwtResponse = new JwtResponse(token, user.getEmail());  // 이메일 추가
+        JwtResponse jwtResponse = new JwtResponse(token, user.getEmail());
         return ResponseEntity.ok(jwtResponse);
     }
 }

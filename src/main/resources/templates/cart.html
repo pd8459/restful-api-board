@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html layout:decorate="~{layout}" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
 <head>
     <meta charset="UTF-8">
-    <title>Your Cart</title>
+    <title>장바구니</title>
     <style>
-        /* 기존 스타일 */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -22,15 +21,6 @@
             font-weight: bold;
         }
 
-        form {
-            display: inline;
-        }
-
-        p {
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
-
         .cart-container {
             margin: 20px auto;
             max-width: 800px;
@@ -44,124 +34,131 @@
             margin-top: 20px;
             text-align: center;
         }
+
+        .cart-item-img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 5px;
+            display: block;
+            margin: auto;
+        }
+
+        .quantity-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .quantity-input {
+            width: 50px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-<div class="cart-container">
-    <h1>Your Shopping Cart</h1>
+<div layout:fragment="content">
+    <div class="cart-container">
+        <h1>장바구니</h1>
 
-    <table>
-        <thead>
+        <table>
+            <thead>
+            <tr>
+                <th>Image</th>
+                <th>Item Name</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Total</th>
+                <th>Action</th>
+            </tr>
+            </thead>
+            <tbody id="cart-items"></tbody>
+        </table>
+
+        <p class="total-amount">Total Amount: <span id="total-amount">0</span></p>
+        <button class="checkout-btn" onclick="window.location.href='/order'">주문하기</button>
+    </div>
+
+    <script>
+        function getEmailFromLocalStorage() {
+            const email = localStorage.getItem('userEmail');
+            if (!email) {
+                alert('로그인 후 장바구니를 확인할 수 있습니다.');
+                return null;
+            }
+            return email;
+        }
+
+        function loadCart() {
+            const email = getEmailFromLocalStorage();
+            if (!email) {
+                return;
+            }
+
+            fetch(`/api/cart?email=${email}`)
+                .then(response => response.json())
+                .then(data => {
+                    let cartItemsHtml = '';
+                    let totalAmount = 0;
+                    data.forEach(item => {
+                        const itemTotal = item.price * item.quantity;
+                        totalAmount += itemTotal;
+                        cartItemsHtml += `
         <tr>
-            <th>Item Name</th>
-            <th>Quantity</th>
-            <th>Price</th>
-            <th>Total</th>
-            <th>Action</th>
-        </tr>
-        </thead>
-        <tbody id="cart-items"></tbody>
-    </table>
+            <td><img src="${item.imageUrl}" alt="${item.itemName}" class="cart-item-img"></td>
+            <td>${item.itemName}</td>
+            <td>
+                <div class="quantity-controls">
+                    <button onclick="changeQuantity(${item.cartItemId}, ${item.quantity - 1})">-</button>
+                    <input type="number" min="1" value="${item.quantity}" class="quantity-input"
+                        onchange="changeQuantity(${item.cartItemId}, this.value)">
+                    <button onclick="changeQuantity(${item.cartItemId}, ${item.quantity + 1})">+</button>
+                </div>
+            </td>
+            <td>${item.price}</td>
+            <td>${itemTotal}</td>
+            <td>
+                <button onclick="removeItem(${item.cartItemId})">삭제</button>
+            </td>
+        </tr>`;
+                    });
+                    document.getElementById('cart-items').innerHTML = cartItemsHtml;
+                    document.getElementById('total-amount').innerText = totalAmount;
+                })
+                .catch(error => console.error('Error:', error));
+        }
 
-    <p class="total-amount">Total Amount: <span id="total-amount">0</span></p>
+        function changeQuantity(cartItemId, quantity) {
+            const email = getEmailFromLocalStorage();
+            if (!email) return;
 
-    <button class="checkout-btn" onclick="window.location.href='/checkout'">Proceed to Checkout</button>
+            quantity = parseInt(quantity);
+            if (isNaN(quantity) || quantity < 1) {
+                alert("수량은 1 이상이어야 합니다.");
+                return;
+            }
+
+            fetch(`/api/cart/update?email=${email}&cartItemId=${cartItemId}&quantity=${quantity}`, {
+                method: 'POST'
+            })
+                .then(() => loadCart())
+                .catch(error => console.error('Error:', error));
+        }
+
+        function removeItem(cartItemId) {
+            const email = getEmailFromLocalStorage();
+            if (!email) {
+                return;
+            }
+
+            fetch(`/api/cart/remove?email=${email}&cartItemId=${cartItemId}`, { method: 'DELETE' })
+                .then(() => loadCart())
+                .catch(error => console.error('Error:', error));
+        }
+
+        window.onload = loadCart;
+    </script>
 </div>
-
-<script>
-    function getEmailFromLocalStorage() {
-        const email = localStorage.getItem('userEmail');  // localStorage에서 이메일 가져오기
-        if (!email) {
-            alert('로그인 후 장바구니를 확인할 수 있습니다.');
-            return null;
-        }
-        return email;
-    }
-
-    function loadCart() {
-        const email = getEmailFromLocalStorage();  // 이메일 가져오기
-        if (!email) {
-            return;
-        }
-
-        fetch(`/api/cart?email=${email}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to fetch cart data');
-                }
-                return response.json();
-            })
-            .then(data => {
-                let cartItemsHtml = '';
-                let totalAmount = 0;
-                data.forEach(item => {
-                    const itemTotal = item.item.price * item.quantity;
-                    totalAmount += itemTotal;
-                    cartItemsHtml += `
-                        <tr>
-                            <td>${item.item.name}</td>
-                            <td>${item.quantity}</td>
-                            <td>${item.item.price}</td>
-                            <td>${itemTotal}</td>
-                            <td>
-                                <button onclick="removeItem(${item.cartItemId})">Remove</button>
-                                <button onclick="updateItem(${item.cartItemId})">Update</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-                document.getElementById('cart-items').innerHTML = cartItemsHtml;
-                document.getElementById('total-amount').innerText = totalAmount;
-            })
-            .catch(error => console.error('Error:', error));
-    }
-
-    function removeItem(cartItemId) {
-        const email = getEmailFromLocalStorage();  // 이메일 가져오기
-        if (!email) {
-            return;
-        }
-
-        fetch(`/api/cart/remove?email=${email}&cartItemId=${cartItemId}`, {
-            method: 'DELETE'
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to remove item');
-                }
-                return response.json();
-            })
-            .then(() => loadCart()) // 삭제 후 장바구니 다시 불러오기
-            .catch(error => console.error('Error:', error));
-    }
-
-    function updateItem(cartItemId) {
-        const email = getEmailFromLocalStorage();  // 이메일 가져오기
-        if (!email) {
-            return;
-        }
-
-        const quantity = prompt("Enter new quantity:");
-        if (!quantity || isNaN(quantity) || quantity <= 0) {
-            alert("올바른 숫자를 입력하세요.");
-            return;
-        }
-
-        fetch(`/api/cart/update?email=${email}&cartItemId=${cartItemId}&quantity=${quantity}`, {
-            method: 'POST'
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to update item');
-                }
-                return response.json();
-            })
-            .then(() => loadCart()) // 업데이트 후 장바구니 다시 불러오기
-            .catch(error => console.error('Error:', error));
-    }
-
-    // 페이지가 로드될 때 장바구니 항목을 불러옵니다.
-    window.onload = loadCart;
-</script>
 </body>
 </html>

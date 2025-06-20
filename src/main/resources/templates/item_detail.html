@@ -80,10 +80,10 @@
                     }
                     return response.json();
                 })
-                .then(data => {
-                    alert(data);
+                .then(() => {
+                    alert("장바구니에 추가되었습니다!");
                 })
-                .catch(error => {
+                    .catch(error => {
                     alert("장바구니 추가 실패: " + error.message);
                 });
         });
