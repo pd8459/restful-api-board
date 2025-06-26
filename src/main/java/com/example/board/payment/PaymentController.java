@@ -1,10 +1,11 @@
 package com.example.board.payment;
 
+import com.example.board.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,6 +15,8 @@ import java.util.Map;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final JwtUtil jwtUtil;
+
 
     @PostMapping("/getToken")
     public ResponseEntity<String> getTokenFromIamport() {
@@ -29,9 +32,10 @@ public class PaymentController {
 
     @GetMapping("/validate/{impUid}")
     public ResponseEntity<PaymentValidationResponse> validatePayment(@PathVariable String impUid,
-                                                                     @RequestParam String userEmail) {
+                                                                     HttpServletRequest request) {
         try {
-            Long orderId = paymentService.validatePayment(impUid, userEmail);
+            String email = getEmailFromRequest(request);
+            Long orderId = paymentService.validatePayment(impUid, email);
 
             return ResponseEntity.ok(new PaymentValidationResponse(
                     true,
@@ -47,6 +51,14 @@ public class PaymentController {
         }
     }
 
+    private String getEmailFromRequest(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null  || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("인증 토큰이 필요합니다.");
+        }
+        String token = authHeader.substring(7);
+        return jwtUtil.validateAndGetEmail(token);
+    }
 
 
 

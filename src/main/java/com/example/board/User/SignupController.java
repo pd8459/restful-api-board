@@ -23,7 +23,7 @@ public class SignupController {
     @PostMapping("/signup")
     public String signup(String email, String password, String nickname, Model model) {
         UserDto userDto = new UserDto(email, password, nickname);
-        String apiUrl = "http://localhost:8080/api/users"; // API URL
+        String apiUrl = "http://localhost:8080/api/users";
         UserDto response = restTemplate.postForObject(apiUrl, userDto, UserDto.class);
 
         if (response != null) {

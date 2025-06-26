@@ -2,11 +2,13 @@ package com.example.board.cart;
 
 import com.example.board.User.User;
 import com.example.board.User.UserRepository;
+import com.example.board.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,43 +20,70 @@ public class CartController {
 
     private final CartService cartService;
     private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
+
+    private String getEmailFromRequest(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("인증 토큰이 필요합니다.");
+        }
+        String token = authHeader.substring(7);
+        return jwtUtil.validateAndGetEmail(token);
+    }
 
     @GetMapping
-    private List<CartItemDto> getCartItems(@RequestParam String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
-        return cartService.getCartItems(user);
+    public ResponseEntity<?> getCartItems(HttpServletRequest request) {
+        try {
+            String email = getEmailFromRequest(request);
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+            List<CartItemDto> items = cartService.getCartItems(user);
+            return ResponseEntity.ok(items);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }
     }
 
     @PostMapping("/add")
-    public ResponseEntity<Map<String, String>> addItemToCart(@RequestBody CartRequest cartRequest) {
+    public ResponseEntity<?> addItemToCart(@RequestBody CartRequest cartRequest, HttpServletRequest request) {
         try {
-            User user = userRepository.findByEmail(cartRequest.getEmail())
+            String email = getEmailFromRequest(request);
+            User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
-
             cartService.addItemToCart(user, cartRequest.getItemId(), cartRequest.getQuantity());
-
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "장바구니에 추가되었습니다.");
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (Exception e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "장바구니 추가 실패: " + e.getMessage());
-            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+            return ResponseEntity.ok(Map.of("message", "장바구니에 추가되었습니다."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }
     }
 
     @PostMapping("/update")
-    public void updateCartItem(@RequestParam String email, @RequestParam Long cartItemId, @RequestParam int quantity) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
-        cartService.updateCartItem(user, cartItemId, quantity);
+    public ResponseEntity<?> updateCartItem(@RequestParam Long cartItemId,
+                                            @RequestParam int quantity,
+                                            HttpServletRequest request) {
+        try {
+            String email = getEmailFromRequest(request);
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+            cartService.updateCartItem(user, cartItemId, quantity);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }
     }
 
     @DeleteMapping("/remove")
-    public void removeCartItem(@RequestParam String email, @RequestParam Long cartItemId) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
-        cartService.removeCartItem(user, cartItemId);
+    public ResponseEntity<?> removeCartItem(@RequestParam Long cartItemId,
+                                            HttpServletRequest request) {
+        try {
+            String email = getEmailFromRequest(request);
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+            cartService.removeCartItem(user, cartItemId);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }
     }
 }
+

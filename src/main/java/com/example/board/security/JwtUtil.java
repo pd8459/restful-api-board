@@ -1,9 +1,6 @@
 package com.example.board.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -17,14 +14,27 @@ public class JwtUtil {
 
     private final long expirationTime = 1000 * 60 * 60 * 24;
 
-    // JWT 토큰 생성
+
     public String generateToken(String email) {
         return Jwts.builder()
-                .setSubject(email)  // 사용자 이메일 설정
-                .setIssuedAt(new Date())  // 발급 시간 설정
+                .setSubject(email)
+                .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
+    }
+
+    public String validateAndGetEmail(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .setSigningKey(secretKey)
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            return claims.getSubject();
+        } catch (JwtException e) {
+            throw new RuntimeException("유효하지 않은 토큰입니다.");
+        }
     }
 
 
